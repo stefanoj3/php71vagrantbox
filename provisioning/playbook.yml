@@ -42,7 +42,7 @@
     - name: install mysql
       apt: pkg=mysql-server-5.7 state=present
 
-    - name: update mysql root password for all root accounts
+    - name: mysql user
       mysql_user:
         name: devbox
         host: localhost
