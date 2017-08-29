@@ -1,0 +1,80 @@
+---
+
+- hosts: default
+  sudo: yes
+
+  vars:
+    vhostdomain: my-dev-box.com
+
+  pre_tasks:
+    - name: add php 7.1 repo
+      apt_repository: repo='ppa:ondrej/php' state=present
+
+    - name: Update apt cache if needed
+      apt: update_cache=yes cache_valid_time=3600
+      become: yes
+
+  tasks:
+    - name: installing necessary softwares
+      apt: pkg={{ item }} state=present
+      with_items:
+        - python-dev
+        - libmysqlclient-dev
+        - python3-mysqldb
+
+    - name: make sure apache is missing
+      apt: pkg=apache2 state=absent
+
+    - name: install nginx
+      apt: pkg=nginx state=present
+
+    - name: install php7.1
+      apt: pkg={{ item }} state=present
+      with_items:
+        - php7.1-cli
+        - php7.1-fpm
+        - php7.1-mysql
+        - php7.1-curl
+        - php7.1-mbstring
+        - php7.1-mcrypt
+        - php-xdebug
+
+    - name: install mysql
+      apt: pkg=mysql-server-5.7 state=present
+
+    - name: update mysql root password for all root accounts
+      mysql_user:
+        name: devbox
+        host: localhost
+        password: "devbox"
+        priv: "*.*:ALL,GRANT"
+
+    - name: nginx vhost
+      template:
+        src: nginx/default.j2
+        dest: /etc/nginx/sites-available/default
+        owner: root
+        group: root
+        mode: 0644
+        backup: no
+      notify: restart nginx
+
+    - name: Clean nginx default page
+      file: state=absent path=/var/www/html/
+
+    - name: php xdebug config
+      template:
+        src: php/xdebug.ini.j2
+        dest: /etc/php/7.1/mods-available/xdebug.ini
+        owner: root
+        group: root
+        mode: 0644
+        backup: no
+      notify: restart fpm
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+
+    - name: restart fpm
+      service: name=php7.1-fpm state=restarted

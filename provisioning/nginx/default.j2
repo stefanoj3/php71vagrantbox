@@ -1,0 +1,35 @@
+server {
+    listen 80;
+    server_name {{ vhostdomain }};
+
+    root /var/www/web;
+
+    index index.php;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    access_log /var/log/nginx/vhost-access.log;
+    error_log  /var/log/nginx/vhost-error.log error;
+
+    error_page 404 /index.php;
+
+    sendfile off;
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/run/php/php7.1-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi.conf;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
